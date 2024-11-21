@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime, TIMESTAMP, func, Date
+from sqlalchemy import Boolean, Column, Enum, Integer, String, ForeignKey, Float, DateTime, TIMESTAMP, func, Date
 from database import Base
 from sqlalchemy.orm import relationship
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 import os
 import shutil
 import uuid
+
 
 class Addmaterial(Base):
     __tablename__ = "add_materials"
@@ -25,6 +26,9 @@ class Addmaterial(Base):
     
     invoice = Column(String(250))
     truck = Column(String(250))
+
+    is_verified = Column(Boolean, server_default='0', nullable=False)
+    status = Column(String(10), default='pending', nullable=False)  
     created_on = Column(DateTime, default=func.now())
     updated_on = Column(TIMESTAMP, server_default=func.now(), onupdate=func.current_timestamp())
     

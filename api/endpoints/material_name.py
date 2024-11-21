@@ -57,7 +57,7 @@ def get_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
 
-        material = db.query(Addmaterial).filter(Addmaterial.id == material_id).first()
+        material = db.query(Material_Name).filter(Material_Name.id == material_id).first()
         if not material:
             raise HTTPException(status_code=404, detail="Material data not found")
         
@@ -76,7 +76,7 @@ def get_all_materials(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
 
-        materials = db.query(Addmaterial).all()
+        materials = db.query(Material_Name).all()
         if not materials:
             raise HTTPException(status_code=404, detail="No material data found")
         
@@ -98,7 +98,7 @@ def update_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
 
-        material = db.query(Addmaterial).filter(Addmaterial.id == material_id).first()
+        material = db.query(Material_Name).filter(Material_Name.id == material_id).first()
         if not material:
             raise HTTPException(status_code=404, detail="Material data not found")
         
@@ -113,4 +113,14 @@ def update_material(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update material: {str(e)}")
+    
+@router.delete("/delete_materials_name/{material_name_id}", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin)])
+def delete_material(material_name_id: int, db: Session = Depends(get_db)):
+    material_anme = db.query(Material_Name).filter(Material_Name.id == material_name_id).first()
+    if not material_anme:
+        raise HTTPException(status_code=404, detail="Material_name not found")
+
+    db.delete(material_anme)
+    db.commit()
+    return {"message": "Material_name deleted successfully"}
 
