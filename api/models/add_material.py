@@ -8,7 +8,7 @@ import uuid
 
 
 class Addmaterial(Base):
-    __tablename__ = "add_materials"
+    __tablename__ = "add_materials_tb"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.user_id')) 
@@ -18,11 +18,8 @@ class Addmaterial(Base):
     site_address = Column(String(250))
     material = Column(String(250))
     
-    sand_quantity = Column(Float)  
-    sand_unit = Column(String(10), default="kg")  
-    
-    diesel_quantity = Column(Float) 
-    diesel_unit = Column(String(10), default="L")  
+    quantity = Column(Float)  
+    quantity_unit = Column(String(250))  
     
     invoice = Column(String(250))
     truck = Column(String(250))

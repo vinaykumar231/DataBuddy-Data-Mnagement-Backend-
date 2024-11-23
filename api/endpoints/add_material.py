@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import Session, joinedload
 from auth.auth_bearer import JWTBearer, get_admin,get_admin_or_worker, get_current_user
@@ -27,10 +27,8 @@ def create_material(
     challan_number: str = Form(...),
     site_address: str = Form(...),
     material: str = Form(...),
-    sand_quantity: float = Form(...),
-    sand_unit: str = Form("kg"),
-    diesel_quantity: float = Form(...),
-    diesel_unit: str = Form("L"),
+    quantity: float = Form(...),
+    quantity_unit: str = Form(...),
     invoice: UploadFile = File(...),
     truck: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -66,10 +64,8 @@ def create_material(
             challan_number=challan_number,
             site_address=site_address,
             material=material,
-            sand_quantity=sand_quantity,
-            sand_unit=sand_unit,
-            diesel_quantity=diesel_quantity,
-            diesel_unit=diesel_unit,
+            quantity=quantity,
+            quantity_unit=quantity_unit,
             invoice=invoice_url,
             truck=truck_url,
             created_on=ist_now,
@@ -84,10 +80,10 @@ def create_material(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to add material: {str(e)}")
     
-@router.put("/verify_material/{user_id}", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin)])
-async def verify_material(user_id: int, db: Session = Depends(get_db)):
+@router.put("/verify_material/{material_id}", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin)])
+async def verify_material(material_id: int, db: Session = Depends(get_db)):
     try:
-        material = db.query(Addmaterial).filter(Addmaterial.user_id == user_id).first()
+        material = db.query(Addmaterial).filter(Addmaterial.id == material_id).first()
         
         if not material:
             raise HTTPException(status_code=404, detail="Material not found for the given user_id")
@@ -109,10 +105,8 @@ async def verify_material(user_id: int, db: Session = Depends(get_db)):
             "challan_number": material.challan_number,
             "site_address": material.site_address,
             "material": material.material,
-            "sand_quantity": material.sand_quantity,
-            "sand_unit": material.sand_unit,
-            "diesel_quantity": material.diesel_quantity,
-            "diesel_unit": material.diesel_unit,
+            "quantity": material.quantity,
+            "quantity_unit": material.quantity_unit,
             "invoice_url": invoice_url,
             "truck_url": truck_url,
             "is_verified":material.is_verified,
@@ -138,7 +132,7 @@ def get_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in database")
 
-        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.is_verified == True).first()
+        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.is_verified == True, Addmaterial.user_id == current_user.user_id).first()
         if not material:
             raise HTTPException(status_code=404, detail="Material data not found")
 
@@ -153,12 +147,12 @@ def get_material(
             "challan_number": material.challan_number,
             "site_address": material.site_address,
             "material": material.material,
-            "sand_quantity": material.sand_quantity,
-            "sand_unit": material.sand_unit,
-            "diesel_quantity": material.diesel_quantity,
-            "diesel_unit": material.diesel_unit,
+            "quantity": material.quantity,
+            "quantity_unit": material.quantity_unit,
             "invoice_url": invoice_url,
             "truck_url": truck_url,
+            "is_verified":material.is_verified,
+            "status":material.status,
             "created_on": material.created_on,
             "updated_on": material.updated_on,
         }
@@ -167,12 +161,11 @@ def get_material(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get material data: {str(e)}")
-
-
-@router.get("/get_all_materials_data/", response_model=None,  dependencies=[Depends(JWTBearer()), Depends(get_admin)])
-def get_all_materials(db: Session = Depends(get_db)):
+    
+@router.get("/get_all_materials_data_for_worker/", response_model=None,  dependencies=[Depends(JWTBearer()), Depends(get_admin_or_worker)])
+def get_all_materials(db: Session = Depends(get_db), current_user: DataBuddY = Depends(get_current_user)):
     try:
-        materials = db.query(Addmaterial).filter(Addmaterial.is_verified == True).all()
+        materials = db.query(Addmaterial).filter(Addmaterial.user_id== current_user.user_id).all()
         if not materials:
             raise HTTPException(status_code=404, detail="Material data not found")
 
@@ -190,11 +183,50 @@ def get_all_materials(db: Session = Depends(get_db)):
                 "challan_number": material.challan_number,
                 "site_address": material.site_address,
                 "material": material.material,
-                "sand_quantity": material.sand_quantity,
-                "sand_unit": material.sand_unit,
-                "diesel_quantity": material.diesel_quantity,
-                "diesel_unit": material.diesel_unit,
+                "quantity": material.quantity,
+                "quantity_unit": material.quantity_unit,
                 "invoice_url": invoice_url,
+                "truck_url": truck_url,
+                "status":material.status,
+                "created_on": material.created_on,
+                "updated_on": material.updated_on,
+            }
+
+            material_list.append(material_data)
+
+        return material_list
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get material data: {str(e)}")
+
+
+@router.get("/get_all_materials_data/", response_model=None,  dependencies=[Depends(JWTBearer()), Depends(get_admin)])
+def get_all_materials_for_admin(db: Session = Depends(get_db)):
+    try:
+        materials = db.query(Addmaterial).options(joinedload(Addmaterial.user)).all()
+        if not materials:
+            raise HTTPException(status_code=404, detail="Material data not found")
+
+        material_list = []
+
+        for material in materials:
+            invoice_url = f"{base_url_path}/{material.invoice}"  
+            truck_url = f"{base_url_path}/{material.truck}"  
+
+            material_data = {
+                "material_id": material.id,
+                "user_id": material.user_id,
+                "worker_name":material.user.user_name,
+                "Date": material.Date,
+                "Vendor_name": material.Vendor_name,
+                "challan_number": material.challan_number,
+                "site_address": material.site_address,
+                "material": material.material,
+                "quantity": material.quantity,
+                "quantity_unit": material.quantity_unit,
+                "invoice_url": invoice_url,
+                "invoice_url": invoice_url,
+                "status":material.status,
                 "truck_url": truck_url,
                 "created_on": material.created_on,
                 "updated_on": material.updated_on,

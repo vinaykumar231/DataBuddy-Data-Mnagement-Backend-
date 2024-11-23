@@ -70,7 +70,22 @@ def DataBuddY_register(data: UserCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=404, detail=f"{e}")
+    
+@router.put("/update_user_type/", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin)])
+async def update_user_type(user_id: int, user_type: str, db: Session = Depends(get_db)):
+    try:
+        user_db = db.query(DataBuddY).filter(DataBuddY.user_id == user_id).first()
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_db.user_type = user_type
+        db.add(user_db)
+        db.commit()
+        db.refresh(user_db)
+        return {"message": "User type updated successfully"}
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to update user")
 
 @router.get("/get_my_profile")
 def get_current_user_details(current_user: DataBuddY = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -96,26 +111,25 @@ def validate_password(password):
         return len(password) >= 8
 
 
-@router.put("/change_password/{user_id}")
-async def change_password(current_password: str, new_password: str, confirm_new_password: str, current_user: DataBuddY = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.put("/reset_password")
+async def forgot_password(email: str, new_password: str, confirm_new_password: str, db: Session = Depends(get_db)):
     try:
         if new_password != confirm_new_password:
-            raise HTTPException(status_code=400, detail="New passwords do not match")
+            raise HTTPException(status_code=400, detail="Passwords do not match")
 
-        user = db.query(DataBuddY).filter(DataBuddY.user_id == current_user.user_id).first()
+        user = db.query(DataBuddY).filter(DataBuddY.user_email == email).first()
         if not user:
-            raise HTTPException(status_code=404, detail=f"User with ID {current_user.user_id} not found")
-
-        if not bcrypt.checkpw(current_password.encode('utf-8'), user.user_password.encode('utf-8')):
-            raise HTTPException(status_code=400, detail="Wrong current password")
-
-        if not user_ops.validate_password(new_password):
-            raise HTTPException(status_code=400, detail="Invalid new password")
+            raise HTTPException(status_code=404, detail=f"User with email {email} not found")
         
+        if not validate_password(new_password):
+            raise HTTPException(status_code=400, detail="Invalid new password")
+
         hashed_new_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
         user.user_password = hashed_new_password
 
         db.commit()
+
+        # Send email for password reset
         contact = "900-417-3181"
         email_contact = "vinay@example.com"
 
@@ -131,17 +145,15 @@ async def change_password(current_password: str, new_password: str, confirm_new_
         <p>900417181</p>
         """
         await send_email(
-            subject="Password Change Confirmation",
-            email_to=user.user_email,
+            subject="Password Reset Request",
+            email_to=email,
             body=reset_email_body
         )
-        return {"message": "Password changed successfully"}
+
+        return {"message": "Password reset successfully"}
 
     except HTTPException as e:
         raise e
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
-
-

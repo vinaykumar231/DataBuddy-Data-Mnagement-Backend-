@@ -57,7 +57,7 @@ def get_Vendor(vendor_id: int, db: Session = Depends(get_db)):
      except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get vendor: {str(e)}")
      
-@router.get("/vendor_all_data/", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin)])
+@router.get("/vendor_all_data/", response_model=None)
 def get_all_Vendor(db: Session = Depends(get_db)):
     try:
         Vendor_db = db.query(Vendor).all()
