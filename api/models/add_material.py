@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Enum, Integer, String, ForeignKey, Float, DateTime, TIMESTAMP, func, Date
+from sqlalchemy import JSON, Boolean, Column, Enum, Integer, String, ForeignKey, Float, DateTime, TIMESTAMP, func, Date
 from database import Base
 from sqlalchemy.orm import relationship
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
@@ -8,7 +8,7 @@ import uuid
 
 
 class Addmaterial(Base):
-    __tablename__ = "add_materials_tb"
+    __tablename__ = "add_materials_tb2"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.user_id')) 
@@ -16,10 +16,10 @@ class Addmaterial(Base):
     Vendor_name = Column(String(250))
     challan_number = Column(String(250))
     site_address = Column(String(250))
-    material = Column(String(250))
+    material = Column(JSON)
     
-    quantity = Column(Float)  
-    quantity_unit = Column(String(250))  
+    quantity = Column(JSON)  
+    quantity_unit = Column(JSON)  
     
     invoice = Column(String(250))
     truck = Column(String(250))

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
@@ -26,9 +26,9 @@ def create_material(
     Vendor_name: str = Form(...),
     challan_number: str = Form(...),
     site_address: str = Form(...),
-    material: str = Form(...),
-    quantity: float = Form(...),
-    quantity_unit: str = Form(...),
+    material: List[str] = Form(...), 
+    quantity: List[str] = Form(...),
+    quantity_unit: List[str] = Form(...),
     invoice: UploadFile = File(...),
     truck: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -38,10 +38,11 @@ def create_material(
         user = db.query(DataBuddY).filter(DataBuddY.user_id == current_user.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
-
-        material_name = db.query(Material_Name).filter(Material_Name.name == material).first()
-        if not material_name:
-            raise HTTPException(status_code=404, detail="Material not found")
+        
+        # for mat in material:
+        #     material_name = db.query(Material_Name).filter(Material_Name.name == mat).first()
+        #     if not material_name:
+        #         raise HTTPException(status_code=404, detail=f"Material '{mat}' not found")
 
         vendor_name = db.query(Vendor).filter(Vendor.name == Vendor_name).first()
         if not vendor_name:
@@ -132,7 +133,7 @@ def get_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in database")
 
-        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.is_verified == True, Addmaterial.user_id == current_user.user_id).first()
+        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.is_verified == True, Addmaterial.user_id == current_user.user_id, Addmaterial.status=="verified").first()
         if not material:
             raise HTTPException(status_code=404, detail="Material data not found")
 
@@ -165,7 +166,7 @@ def get_material(
 @router.get("/get_all_materials_data_for_worker/", response_model=None,  dependencies=[Depends(JWTBearer()), Depends(get_admin_or_worker)])
 def get_all_materials(db: Session = Depends(get_db), current_user: DataBuddY = Depends(get_current_user)):
     try:
-        materials = db.query(Addmaterial).filter(Addmaterial.user_id== current_user.user_id).all()
+        materials = db.query(Addmaterial).filter(Addmaterial.user_id== current_user.user_id, Addmaterial.status=="verified").all()
         if not materials:
             raise HTTPException(status_code=404, detail="Material data not found")
 

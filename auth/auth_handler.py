@@ -17,7 +17,7 @@ def token_response(token: str):
 
 
 def signJWT(user_id: str, user_type: str) -> tuple[Any, float]:
-    expiration_time = time.time() + 1 * 24 * 60 * 60
+    expiration_time = time.time() + 30 * 24 * 60 * 60 
     payload = {
         "user_id": user_id,
         "user_type": user_type,

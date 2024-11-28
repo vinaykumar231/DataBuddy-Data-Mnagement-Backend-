@@ -23,15 +23,15 @@ class ChangePassword(BaseModel):
 
 class UserType(str, Enum):
     admin = "admin"
-    user = "user"
     worker = "worker"
+   
    
    
 class UserCreate(BaseModel):
     user_name: str
     user_email: str
     user_password: str
-    user_type: UserType = UserType.user
+    user_type: UserType = UserType.worker
     phone_no: str
 
     class Config:
