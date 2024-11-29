@@ -245,17 +245,15 @@ def get_all_materials_for_admin(db: Session = Depends(get_db)):
 @router.put("/update_material_data/{material_id}/", response_model=None, dependencies=[Depends(JWTBearer()), Depends(get_admin_or_worker)])
 def update_material(
     material_id: int,
-    Date: Optional[date] = Form(None),
-    Vendor_name: Optional[str] = Form(None),
-    challan_number: Optional[str] = Form(None),
-    site_address: Optional[str] = Form(None),
-    material: Optional[str] = Form(None),
-    sand_quantity: Optional[float] = Form(None),
-    sand_unit: Optional[str] = Form("kg"),
-    diesel_quantity: Optional[float] = Form(None),
-    diesel_unit: Optional[str] = Form("L"),
-    invoice: Optional[UploadFile] = File(None),
-    truck: Optional[UploadFile] = File(None),
+    Date: date = Form(None),
+    Vendor_name: str = Form(None),
+    challan_number: str = Form(None),
+    site_address: str = Form(None),
+    material: List[str] = Form(None), 
+    quantity: List[str] = Form(None),
+    quantity_unit: List[str] = Form(None),
+    invoice: UploadFile = File(...),
+    truck: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: DataBuddY = Depends(get_current_user),
 ):
@@ -268,13 +266,14 @@ def update_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
         
-        if not invoice or not invoice.filename:
-            raise HTTPException(status_code=404, detail="Please provide the invoice image again")
-
-        if not truck or not truck.filename:
-            raise HTTPException(status_code=404, detail="Please provide the truck image again")
-
-
+        if invoice is None:
+            raise HTTPException(status_code=404, detail=" please upload invoice")
+        if truck is None:
+            raise HTTPException(status_code=404, detail=" please upload truck")
+        
+        utc_now = pytz.utc.localize(datetime.utcnow())
+        ist_now = utc_now.astimezone(pytz.timezone('Asia/Kolkata'))
+    
         invoice_url = existing_material.invoice
         if invoice is not None:
             invoice_url = save_upload_file(invoice)
@@ -293,20 +292,16 @@ def update_material(
             existing_material.site_address = site_address
         if material is not None:
             existing_material.material = material
-        if sand_quantity is not None:
-            existing_material.sand_quantity = sand_quantity
-        if sand_unit is not None:
-            existing_material.sand_unit = sand_unit
-        if diesel_quantity is not None:
-            existing_material.diesel_quantity = diesel_quantity
-        if diesel_unit is not None:
-            existing_material.diesel_unit = diesel_unit
+        if quantity is not None:
+            existing_material.quantity = quantity
+        if quantity_unit is not None:
+            existing_material.quantity_unit = quantity_unit
         if invoice_url is not None:
             existing_material.invoice = invoice_url
         if truck_url is not None:
             existing_material.truck = truck_url
 
-        existing_material.updated_on = func.now()
+        existing_material.updated_on = ist_now
 
         db.commit()
         db.refresh(existing_material)
