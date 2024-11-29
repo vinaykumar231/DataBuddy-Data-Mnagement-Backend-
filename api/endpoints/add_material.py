@@ -133,7 +133,7 @@ def get_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in database")
 
-        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.is_verified == True, Addmaterial.user_id == current_user.user_id, Addmaterial.status=="verified").first()
+        material = db.query(Addmaterial).filter(Addmaterial.id == material_id, Addmaterial.user_id == current_user.user_id).first()
         if not material:
             raise HTTPException(status_code=404, detail="Material data not found")
 
@@ -166,7 +166,7 @@ def get_material(
 @router.get("/get_all_materials_data_for_worker/", response_model=None,  dependencies=[Depends(JWTBearer()), Depends(get_admin_or_worker)])
 def get_all_materials(db: Session = Depends(get_db), current_user: DataBuddY = Depends(get_current_user)):
     try:
-        materials = db.query(Addmaterial).filter(Addmaterial.user_id== current_user.user_id, Addmaterial.status=="verified").all()
+        materials = db.query(Addmaterial).filter(Addmaterial.user_id== current_user.user_id).all()
         if not materials:
             raise HTTPException(status_code=404, detail="Material data not found")
 
