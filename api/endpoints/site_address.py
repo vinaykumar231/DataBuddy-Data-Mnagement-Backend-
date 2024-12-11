@@ -29,6 +29,11 @@ def create_material(
         user = db.query(DataBuddY).filter(DataBuddY.user_id == current_user.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
+        
+        existing_site = db.query(SiteAddress).filter(SiteAddress.site_name == site_name_data.site_name).first()
+        if existing_site:
+            raise HTTPException(status_code=400, detail=f"Material '{site_name_data.site_name}' already exists in the database.")
+
 
         site_address = SiteAddress(
             admin_id=current_user.user_id,

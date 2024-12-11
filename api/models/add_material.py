@@ -19,7 +19,7 @@ class Addmaterial(Base):
     material = Column(JSON)
     
     quantity = Column(JSON)  
-    quantity_unit = Column(JSON)  
+    quantity_unit = Column(JSON) 
     
     invoice = Column(String(250))
     truck = Column(String(250))

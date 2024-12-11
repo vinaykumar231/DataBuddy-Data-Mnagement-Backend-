@@ -29,6 +29,10 @@ def create_material(
         user = db.query(DataBuddY).filter(DataBuddY.user_id == current_user.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
+        
+        existing_material = db.query(Material_Name).filter(Material_Name.name == material_data.name).first()
+        if existing_material:
+            raise HTTPException(status_code=400, detail=f"Material '{material_data.name}' already exists in the database.")
 
         new_material = Material_Name(
             name=material_data.name,

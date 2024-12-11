@@ -252,8 +252,8 @@ def update_material(
     material: List[str] = Form(None), 
     quantity: List[str] = Form(None),
     quantity_unit: List[str] = Form(None),
-    invoice: UploadFile = File(...),
-    truck: UploadFile = File(...),
+    invoice: UploadFile = File(None),
+    truck: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: DataBuddY = Depends(get_current_user),
 ):
@@ -266,10 +266,6 @@ def update_material(
         if not user:
             raise HTTPException(status_code=404, detail="User not found in the database")
         
-        if invoice is None:
-            raise HTTPException(status_code=404, detail=" please upload invoice")
-        if truck is None:
-            raise HTTPException(status_code=404, detail=" please upload truck")
         
         utc_now = pytz.utc.localize(datetime.utcnow())
         ist_now = utc_now.astimezone(pytz.timezone('Asia/Kolkata'))
