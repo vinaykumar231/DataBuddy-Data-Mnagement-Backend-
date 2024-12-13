@@ -42,39 +42,59 @@ def fetch_data_and_export_to_excel(file_path: str):
 
     query = db.query(Addmaterial).all()
 
-    
     data = []
     utc_now = pytz.utc.localize(datetime.utcnow())
     ist_now = utc_now.astimezone(pytz.timezone('Asia/Kolkata'))
-    for item in query:
-        data.append({
-            # "id": item.id,
-            # "user_id": item.user_id,
-            "Date": format_date(item.Date),
-            "Vendor_name": item.Vendor_name,
-            "challan_number": item.challan_number,
-            "site_address": item.site_address,
-            "material": item.material,
-            "quantity": item.quantity,
-            "quantity_unit": item.quantity_unit,
-            # "invoice": item.invoice,
-            # "truck": item.truck,
-            "is_verified": item.is_verified,
-            "status": item.status,
-            "created_on": format_date3(item.created_on),
-            "updated_on": format_date3(item.updated_on),
-        })
     
+    for item in query:
+        # Preprocess fields to remove brackets, single quotes, and split values
+        materials = (
+            str(item.material)
+            .replace("[", "").replace("]", "").replace("'", "").split(",") 
+            if item.material else []
+        )
+        quantities = (
+            str(item.quantity)
+            .replace("[", "").replace("]", "").replace("'", "").split(",") 
+            if item.quantity else []
+        )
+        quantity_units = (
+            str(item.quantity_unit)
+            .replace("[", "").replace("]", "").replace("'", "").split(",") 
+            if item.quantity_unit else []
+        )
+        
+        # Iterate over split lists and create separate rows
+        for material, quantity, quantity_unit in zip(materials, quantities, quantity_units):
+            data.append({
+                "Date": format_date(item.Date),
+                "Vendor_name": item.Vendor_name,
+                "challan_number": item.challan_number,
+                "site_address": item.site_address,
+                "material": material.strip() if isinstance(material, str) else str(material),
+                "quantity": quantity.strip() if isinstance(quantity, str) else str(quantity),
+                "quantity_unit": quantity_unit.strip() if isinstance(quantity_unit, str) else str(quantity_unit),
+                "is_verified": item.is_verified,
+                "status": item.status,
+                "created_on": format_date3(item.created_on),
+                "updated_on": format_date3(item.updated_on),
+            })
+    
+    # Convert to DataFrame and export to Excel
     df = pd.DataFrame(data)
     df.to_excel(file_path, index=False, engine='openpyxl')
-    excel_db=Excel_file(
+    
+    # Save export details in the database
+    excel_db = Excel_file(
         excel_fie_path=file_path,
         created_on=ist_now,
     )
     db.add(excel_db)
     db.commit()
-    db.refresh(excel_db)  
+    db.refresh(excel_db)
+    
     print(f"Data exported successfully to {file_path}")
+
 
 
 @router.get("/export_excel_file")
