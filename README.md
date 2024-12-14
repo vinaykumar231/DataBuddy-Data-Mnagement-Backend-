@@ -1,1 +1,1 @@
-DataBuddy ( Data Management System) Backend in Fastapi
+MB_Infra_Backend in Fastapi
